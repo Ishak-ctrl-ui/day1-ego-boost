@@ -1,362 +1,532 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arena of Legends — Leaderboard</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0a0a0f; color: white; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; min-height: 100vh; padding-bottom: 40px; }
-
-        .header { background: linear-gradient(180deg, #1a0020 0%, #0a0a0f 100%); border-bottom: 2px solid #ff006e; padding: 22px 16px 16px; text-align: center; box-shadow: 0 4px 30px rgba(255,0,110,0.3); }
-        .header h1 { font-size: 24px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; background: linear-gradient(90deg, #ff006e, #8338ec, #3a86ff, #ff006e); background-size: 300%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: shimmer 4s infinite linear; }
-        @keyframes shimmer { to { background-position: 300% } }
-        .header .sub { font-size: 11px; color: #555; margin-top: 5px; letter-spacing: 2px; text-transform: uppercase; }
-
-        .tabs { display: flex; border-bottom: 1px solid #1a1a2e; background: #0d0d14; position: sticky; top: 0; z-index: 50; }
-        .tab { flex: 1; padding: 13px 4px; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: #444; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; text-transform: uppercase; }
-        .tab.active { color: #ff006e; border-bottom-color: #ff006e; background: rgba(255,0,110,0.05); }
-
-        .panel { display: none; }
-        .panel.active { display: block; }
-
-        .match-badges { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px; background: #0d0d14; border-bottom: 1px solid #1a1a2e; }
-        .badge { background: rgba(255,0,110,0.1); border: 1px solid rgba(255,0,110,0.25); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: #ff006e; }
-
-        .search-wrap { padding: 12px 16px; background: #0d0d14; border-bottom: 1px solid #1a1a2e; }
-        .search-box { width: 100%; background: #1a1a2e; border: 1px solid #2a2a4e; border-radius: 25px; padding: 10px 18px; color: white; font-size: 14px; outline: none; }
-        .search-box:focus { border-color: #ff006e; }
-        .search-box::placeholder { color: #333; }
-
-        .winner-wrap { padding: 20px 16px 10px; text-align: center; }
-        .winner-card { display: inline-block; background: linear-gradient(135deg, #1a1000, #2a1800); border: 2px solid #ffd700; border-radius: 20px; padding: 20px 30px; min-width: 180px; animation: wglow 2s ease-in-out infinite alternate; }
-        @keyframes wglow { from { box-shadow: 0 0 20px rgba(255,215,0,0.15); } to { box-shadow: 0 0 50px rgba(255,215,0,0.4); } }
-        .winner-crown { font-size: 40px; display: block; margin-bottom: 8px; }
-        .winner-name { font-size: 20px; font-weight: 900; color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.5); }
-        .winner-pts { margin-top: 6px; font-size: 13px; color: #888; }
-
-        .tbl-head { display: flex; padding: 8px 16px; font-size: 10px; color: #333; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #1a1a2e; }
-
-        .f-row { display: flex; align-items: center; padding: 9px 16px; border-bottom: 1px solid #0f0f1a; transition: background 0.1s; }
-        .f-row:hover { background: #0f0f1a; }
-        .f-row.hl { background: rgba(255,0,110,0.07); border-left: 3px solid #ff006e; }
-        .f-row.gold { background: rgba(255,215,0,0.04); }
-
-        .rank-badge { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; margin-right: 6px; flex-shrink: 0; }
-        .r1 { background:#ffd700; color:#000; font-size:15px; }
-        .r2 { background:#c0c0c0; color:#000; }
-        .r3 { background:#cd7f32; color:#000; }
-        .rn { background:#1a1a2e; color:#555; font-size:11px; }
-
-        .f-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; margin-right: 10px; flex-shrink: 0; }
-        .f-name { flex: 1; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .f-name.gold-text { color: #ffd700; }
-        .f-stat { text-align: center; font-size: 12px; font-weight: 700; }
-        .f-pts  { width: 55px; color: #ff006e; }
-        .f-kills{ width: 40px; color: #8338ec; }
-        .f-wins { width: 40px; color: #ffd700; }
-        .f-by   { width: 80px; text-align: right; font-size: 10px; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .f-zero { color: #222 !important; }
-
-        .hof-wrap { padding: 16px; }
-        .hof-title { font-size: 13px; font-weight: 900; color: #ffd700; letter-spacing: 2px; text-transform: uppercase; text-align: center; margin-bottom: 16px; text-shadow: 0 0 15px rgba(255,215,0,0.4); }
-        .hof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
-        .hof-card { background: linear-gradient(135deg, #1a1000, #0f0f1a); border: 1px solid #2a2000; border-radius: 14px; padding: 14px 8px; text-align: center; }
-        .hof-card.top { border-color: #ffd700; box-shadow: 0 0 15px rgba(255,215,0,0.1); }
-        .hof-av { width: 50px; height: 50px; border-radius: 50%; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 900; }
-        .hof-username { font-size: 11px; font-weight: 700; color: #ccc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .hof-pts { font-size: 18px; font-weight: 900; color: #ffd700; margin: 4px 0 2px; }
-        .hof-sub { font-size: 10px; color: #555; }
-
-        .hist-wrap { padding: 16px; }
-        .hist-item { background: #0f0f1a; border: 1px solid #1a1a2e; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
-        .hist-num { font-size: 10px; color: #444; width: 30px; flex-shrink: 0; }
-        .hist-av { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; border: 2px solid #ffd700; flex-shrink: 0; }
-        .hist-info { flex: 1; }
-        .hist-winner { font-size: 13px; font-weight: 700; color: #ffd700; }
-        .hist-meta { font-size: 11px; color: #444; margin-top: 2px; }
-        .hist-date { font-size: 11px; color: #333; text-align: right; white-space: nowrap; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 16px; }
-        .stat-card { background: #0f0f1a; border: 1px solid #1a1a2e; border-radius: 14px; padding: 16px; text-align: center; }
-        .stat-num { font-size: 28px; font-weight: 900; color: #ff006e; }
-        .stat-label { font-size: 11px; color: #444; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
-
-        .pts-legend { margin: 0 16px 16px; background: #0f0f1a; border: 1px solid #1a1a2e; border-radius: 14px; padding: 14px 16px; }
-        .pts-legend h4 { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-        .pts-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 12px; color: #888; border-bottom: 1px solid #111; }
-        .pts-row:last-child { border: none; }
-        .pts-val { color: #ff006e; font-weight: 700; }
-
-        .section-title { font-size: 11px; color: #444; text-transform: uppercase; letter-spacing: 2px; padding: 14px 16px 6px; border-top: 1px solid #1a1a2e; }
-        .loading { text-align: center; padding: 60px 20px; color: #333; }
-        .spinner { width: 36px; height: 36px; border: 3px solid #1a1a2e; border-top-color: #ff006e; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .footer { text-align: center; padding: 30px 16px; color: #222; font-size: 11px; letter-spacing: 1px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Habit RPG</title>
+<style>
+  :root {
+    --bg:#0d0d14;--surf:#15151e;--card:#1c1c28;--border:#2a2a3e;
+    --text:#eeeef5;--sec:#7878a0;--accent:#7c6fff;
+    --success:#4ade80;--danger:#f87171;--warn:#fbbf24;
+    --succ-soft:rgba(74,222,128,0.12);--dan-soft:rgba(248,113,113,0.12);
+  }
+  .light{
+    --bg:#f0f0f8;--surf:#ffffff;--card:#f5f5ff;--border:#ddddf0;
+    --text:#111128;--sec:#6666a0;--accent:#6c5ce7;
+    --success:#16a34a;--danger:#dc2626;--warn:#ca8a04;
+    --succ-soft:rgba(22,163,74,0.1);--dan-soft:rgba(220,38,38,0.1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;max-width:480px;margin:0 auto}
+  input,select,button{font-family:inherit;outline:none}
+  .header{background:var(--surf);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+  .header-right{display:flex;gap:8px;align-items:center}
+  .icon-btn{background:var(--card);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:6px 10px;cursor:pointer;font-size:15px;line-height:1}
+  .sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+  .s-ok{background:var(--success)}.s-err{background:var(--danger)}.s-ing{background:var(--warn);animation:pulse 1s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .content{padding:14px 14px 90px}
+  .tab-bar{position:fixed;bottom:0;left:0;right:0;background:var(--surf);border-top:1px solid var(--border);display:flex;max-width:480px;margin:0 auto;z-index:10}
+  .tab-btn{flex:1;padding:10px 4px 8px;border:none;background:transparent;color:var(--sec);font-size:11px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;transition:color .15s}
+  .tab-btn.active{color:var(--accent);font-weight:700}
+  .tab-icon{font-size:20px}
+  .card{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+  .inp{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;margin-bottom:10px}
+  .inp:focus{border-color:var(--accent)}
+  .btn{padding:9px 14px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer}
+  .btn:active{opacity:.7}
+  .btn-p{background:var(--accent);color:#fff}
+  .btn-s{background:var(--success);color:#fff}
+  .btn-ds{background:var(--dan-soft);border:1px solid rgba(248,113,113,.3);color:var(--danger)}
+  .btn-o{background:transparent;border:1px solid var(--border);color:var(--sec)}
+  .btn-w{background:var(--warn);color:#000}
+  .btn-block{width:100%;padding:14px;font-size:15px;margin-bottom:8px;display:block;text-align:center;text-decoration:none}
+  .xbw{height:8px;border-radius:4px;background:var(--border);overflow:hidden;margin-bottom:4px}
+  .xbf{height:100%;border-radius:4px;background:var(--accent);transition:width .5s}
+  .xbl{display:flex;justify-content:space-between;font-size:11px;color:var(--sec)}
+  .hcard{border-radius:16px;padding:14px 16px;margin-bottom:10px;border:1px solid var(--border);background:var(--surf)}
+  .hcard.done{background:var(--succ-soft);border-color:rgba(74,222,128,.3)}
+  .hcard.failed{background:var(--dan-soft);border-color:rgba(248,113,113,.3)}
+  .hname{font-weight:600;font-size:16px;margin-bottom:4px}
+  .hmeta{font-size:12px;color:var(--sec);display:flex;gap:8px;flex-wrap:wrap}
+  .hact{display:flex;gap:8px;margin-top:10px}
+  .hact .btn{flex:1}
+  .empty{text-align:center;padding:40px 20px;color:var(--sec)}
+  .mo{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:50;display:flex;align-items:flex-end}
+  .md{background:var(--surf);border-radius:20px 20px 0 0;padding:20px 16px 40px;width:100%;max-width:480px;margin:0 auto;max-height:92vh;overflow-y:auto}
+  .fl{font-size:12px;color:var(--sec);margin-bottom:4px}
+  .row{display:flex;gap:8px}
+  .fq{display:flex;gap:8px;margin-bottom:10px}
+  .fqb{flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--sec)}
+  .fqb.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pmd{background:var(--surf);border-radius:20px 20px 0 0;padding:28px 20px 44px;width:100%;max-width:480px;margin:0 auto;text-align:center}
+  .pbox{background:var(--dan-soft);border:1px solid rgba(248,113,113,.3);border-radius:12px;padding:14px;margin-bottom:16px;font-size:16px;font-weight:700;color:var(--danger)}
+  .toast{position:fixed;bottom:90px;left:14px;right:14px;z-index:100;border-radius:12px;padding:12px 16px;font-size:14px;font-weight:700;text-align:center;max-width:452px;margin:0 auto;pointer-events:none;animation:su .3s ease}
+  .toast.success{background:var(--success);color:#fff}
+  .toast.warn{background:var(--warn);color:#000}
+  .toast.danger{background:var(--danger);color:#fff}
+  @keyframes su{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .srow{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+  .srow:last-child{border-bottom:none}
+  .stit{font-size:13px;font-weight:600;margin-bottom:10px}
+  .cbars{display:flex;align-items:flex-end;height:110px;gap:4px;margin-bottom:4px}
+  .cbc{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1}
+  .cb{width:100%;border-radius:3px 3px 0 0;background:var(--accent);min-height:3px}
+  .cl{font-size:10px;color:var(--sec)}
+  /* Setup */
+  .sw{padding:24px 20px}
+  .sbox{background:var(--surf);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+  .snum{font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+  .stxt{font-size:13px;color:var(--sec);line-height:1.6;margin-bottom:10px}
+  .stxt a{color:var(--accent);text-decoration:none}
+  .stxt code{background:var(--card);border-radius:4px;padding:1px 5px;font-size:12px;color:var(--text)}
+</style>
 </head>
 <body>
 
-<div class="header">
-    <h1>⚔️ Arena of Legends</h1>
-    <div class="sub">namewalldaily • Live Rankings</div>
-</div>
+<div id="setupScreen" style="display:none">
+  <div class="sw">
+    <div style="font-size:52px;text-align:center;margin-bottom:12px">⚔️</div>
+    <div style="font-size:24px;font-weight:800;text-align:center;margin-bottom:6px">Habit RPG</div>
+    <div style="font-size:14px;color:var(--sec);text-align:center;margin-bottom:28px;line-height:1.5">Connect GitHub to save your data across all devices for free.</div>
 
-<div class="tabs">
-    <div class="tab active" onclick="switchTab('match')">⚔️ Latest</div>
-    <div class="tab" onclick="switchTab('alltime')">🏆 All-Time</div>
-    <div class="tab" onclick="switchTab('hof')">👑 Hall of Fame</div>
-    <div class="tab" onclick="switchTab('history')">📅 History</div>
-</div>
-
-<div class="panel active" id="tab-match">
-    <div class="match-badges" id="match-badges"><span class="badge">Loading...</span></div>
-    <div class="search-wrap"><input class="search-box" type="text" id="search-match" placeholder="🔍 Search your username..." oninput="filterMatch()"></div>
-    <div id="winner-wrap" class="winner-wrap" style="display:none"></div>
-    <div class="tbl-head">
-        <div style="width:34px"></div><div style="width:46px"></div>
-        <div style="flex:1">Fighter</div>
-        <div class="f-stat f-pts">PTS</div>
-        <div class="f-stat f-kills">KOs</div>
-        <div class="f-by">Elim. by</div>
+    <div class="sbox">
+      <div class="snum">Step 1 — Create a free GitHub account</div>
+      <div class="stxt">Already have one? Skip to step 2.<br>→ <a href="https://github.com/signup" target="_blank">github.com/signup</a></div>
     </div>
-    <div id="match-list"><div class="loading"><div class="spinner"></div>Loading match...</div></div>
+    <div class="sbox">
+      <div class="snum">Step 2 — Get a Personal Access Token</div>
+      <div class="stxt">
+        1. Go to <a href="https://github.com/settings/tokens/new" target="_blank">github.com/settings/tokens/new</a><br>
+        2. Give it any name (e.g. <code>habit-rpg</code>)<br>
+        3. Expiration → <code>No expiration</code><br>
+        4. Check the <code>gist</code> scope ✅<br>
+        5. Click <strong>Generate token</strong> and copy it
+      </div>
+    </div>
+    <div class="sbox">
+      <div class="snum">Step 3 — Paste your token</div>
+      <div class="stxt">Stored only on this device. Never shared anywhere.</div>
+      <input class="inp" id="setup-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+      <button class="btn btn-p btn-block" id="setup-btn" onclick="setupConnect()">🔗 Connect &amp; Start</button>
+      <div id="setup-err" style="color:var(--danger);font-size:13px;text-align:center;margin-top:4px;display:none"></div>
+    </div>
+  </div>
 </div>
 
-<div class="panel" id="tab-alltime">
-    <div id="stats-cards" class="stats-grid"></div>
-    <div class="pts-legend">
-        <h4>Points System</h4>
-        <div class="pts-row"><span>🏆 Win</span><span class="pts-val">+15 pts</span></div>
-        <div class="pts-row"><span>🥈 2nd Place</span><span class="pts-val">+8 pts</span></div>
-        <div class="pts-row"><span>🥉 3rd Place</span><span class="pts-val">+5 pts</span></div>
-        <div class="pts-row"><span>💀 Each Kill</span><span class="pts-val">+2 pts</span></div>
-        <div class="pts-row"><span>⚔️ Participation</span><span class="pts-val">+1 pt</span></div>
+<div id="mainApp" style="display:none">
+  <div class="header">
+    <div>
+      <div style="font-size:17px;font-weight:700">⚔️ Habit RPG</div>
+      <div style="font-size:11px;color:var(--sec);margin-top:2px" id="header-sub">Loading...</div>
     </div>
-    <div class="search-wrap"><input class="search-box" type="text" id="search-alltime" placeholder="🔍 Search your username..." oninput="filterAllTime()"></div>
-    <div class="tbl-head">
-        <div style="width:34px"></div><div style="width:46px"></div>
-        <div style="flex:1">Fighter</div>
-        <div class="f-stat f-pts">PTS</div>
-        <div class="f-stat f-kills">KOs</div>
-        <div class="f-stat f-wins">🏆</div>
+    <div class="header-right">
+      <span id="sync-ind" style="font-size:11px;color:var(--sec);display:flex;align-items:center"></span>
+      <button class="icon-btn" onclick="manualSync()">🔄</button>
+      <button class="icon-btn" id="theme-btn" onclick="toggleTheme()">☀️</button>
     </div>
-    <div id="alltime-list"><div class="loading"><div class="spinner"></div>Loading rankings...</div></div>
+  </div>
+  <div class="content" id="content"></div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="setTab('today')" id="tab-today"><span class="tab-icon">🎯</span><span>Today</span></button>
+    <button class="tab-btn" onclick="setTab('stats')" id="tab-stats"><span class="tab-icon">📊</span><span>Stats</span></button>
+    <button class="tab-btn" onclick="setTab('habits')" id="tab-habits"><span class="tab-icon">⚙️</span><span>Habits</span></button>
+    <button class="tab-btn" onclick="setTab('settings')" id="tab-settings"><span class="tab-icon">🔧</span><span>Settings</span></button>
+  </div>
 </div>
 
-<div class="panel" id="tab-hof">
-    <div class="hof-wrap">
-        <div class="hof-title">👑 Legends of the Arena</div>
-        <div id="hof-grid" class="hof-grid"></div>
-        <div class="section-title">🔥 Most Kills All-Time</div>
-        <div id="hof-killers"></div>
-        <div class="section-title">⚡ Most Matches Played</div>
-        <div id="hof-active"></div>
+<!-- Edit Modal -->
+<div class="mo" id="editModal" style="display:none" onclick="closeEdit()">
+  <div class="md" onclick="event.stopPropagation()">
+    <div style="font-size:17px;font-weight:700;margin-bottom:16px" id="editTitle">New Habit</div>
+    <div class="row">
+      <div><div class="fl">Icon</div><input class="inp" id="e-emoji" maxlength="2" style="width:52px;text-align:center;font-size:22px;margin-bottom:10px"></div>
+      <div style="flex:1"><div class="fl">Habit Name</div><input class="inp" id="e-name" placeholder="e.g. Read 30 mins" style="margin-bottom:10px"></div>
     </div>
+    <div class="fl">Frequency</div>
+    <div class="fq">
+      <button class="fqb active" id="freq-daily" onclick="setFreq('daily')">📆 Daily</button>
+      <button class="fqb" id="freq-weekly" onclick="setFreq('weekly')">📅 Weekly</button>
+    </div>
+    <div id="weekday-row" style="display:none">
+      <div class="fl">Which day?</div>
+      <select class="inp" id="e-weekday">
+        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+        <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option><option value="6">Saturday</option>
+      </select>
+    </div>
+    <div class="row">
+      <div style="flex:1"><div class="fl">XP Reward</div><input class="inp" type="number" id="e-xpR" min="1" max="500" value="20"></div>
+      <div style="flex:1"><div class="fl">XP Penalty</div><input class="inp" type="number" id="e-xpP" min="0" max="500" value="10"></div>
+    </div>
+    <div class="fl">Punishment when you fail</div>
+    <input class="inp" id="e-pen" placeholder="e.g. Do 20 pushups NOW!">
+    <div class="fl">Shame / Roast message</div>
+    <input class="inp" id="e-shame" placeholder="e.g. Really? AGAIN?! 😤">
+    <button class="btn btn-p btn-block" onclick="saveHabit()">Save Habit</button>
+    <button class="btn btn-ds btn-block" id="deleteBtn" onclick="deleteHabit()" style="display:none">🗑 Delete Habit</button>
+  </div>
 </div>
 
-<div class="panel" id="tab-history">
-    <div class="hist-wrap">
-        <div class="section-title" style="padding-top:4px;border-top:none">📅 Match History</div><br>
-        <div id="history-list"><div class="loading"><div class="spinner"></div>Loading history...</div></div>
-    </div>
+<!-- Penalty Modal -->
+<div class="mo" id="penModal" style="display:none" onclick="closePen()">
+  <div class="pmd" onclick="event.stopPropagation()">
+    <div style="font-size:56px;margin-bottom:8px">💀</div>
+    <div style="font-size:22px;font-weight:800;color:var(--danger);margin-bottom:6px">FAILED!</div>
+    <div style="font-size:32px;font-weight:800;margin-bottom:12px" id="pen-xp">-10 XP</div>
+    <div style="font-size:16px;color:var(--sec);font-style:italic;margin-bottom:16px;line-height:1.4" id="pen-shame"></div>
+    <div class="pbox" id="pen-pun" style="display:none"></div>
+    <div style="font-size:13px;color:var(--sec);margin-bottom:20px">Streak reset. Do better tomorrow.</div>
+    <button class="btn btn-p btn-block" onclick="closePen()">I'll do better. 😤</button>
+  </div>
 </div>
 
-<div class="footer">⚔️ ARENA OF LEGENDS • namewalldaily</div>
+<div class="toast" id="toast" style="display:none"></div>
 
 <script>
-    const JSONBIN_API_KEY   = '$2a$10$HnaX8K4gp8w2GqzuyXsLM.57MkIP7QBncuoVHXCA4p8GXSMu0P.m6';
-    const JSONBIN_BIN_MATCH = '69b4338ab7ec241ddc66d738';
-    const JSONBIN_BIN_STATS = '69b436a5c3097a1dd5218e50';
+const RANKS=[
+  {level:1,title:"Couch Potato",emoji:"🥔",min:0},
+  {level:2,title:"Apprentice",emoji:"📚",min:100},
+  {level:3,title:"Committed",emoji:"💪",min:300},
+  {level:4,title:"Warrior",emoji:"⚔️",min:700},
+  {level:5,title:"Champion",emoji:"🏆",min:1500},
+  {level:6,title:"Legend",emoji:"🌟",min:3000},
+  {level:7,title:"Mythic",emoji:"🔥",min:6000},
+];
+const DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const GIST_FILE='habit-rpg-data.json';
+const GIST_DESC='Habit RPG Save Data';
 
-    const COLORS = ['#ff006e','#8338ec','#3a86ff','#ffaa00','#00ff88','#ff4d4d','#00d4ff','#ff8c00','#a855f7','#10b981','#f72585','#4cc9f0'];
-    function getColor(u) { let h=0; for(let c of u) h=(h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
-    function initials(u) { return u.replace(/[^a-zA-Z0-9]/g,'').slice(0,2).toUpperCase()||'??'; }
-    function makeAv(u, size=36, extra='') {
-        return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${getColor(u)};color:white;display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*0.35)}px;font-weight:900;flex-shrink:0;${extra}">${initials(u)}</div>`;
-    }
+let token='', gistId='';
+let state={habits:[],player:{xp:0,history:[]},dark:true};
+let tab='today', editId=null, editFreq='daily';
+let toastT=null, syncT=null;
 
-    function switchTab(id) {
-        const keys = ['match','alltime','hof','history'];
-        document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', keys[i]===id));
-        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-        document.getElementById('tab-'+id).classList.add('active');
-    }
+// ── GitHub API ────────────────────────────────────────────────────────────────
+async function gh(method,path,body){
+  const r=await fetch('https://api.github.com'+path,{
+    method,
+    headers:{'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'},
+    body:body?JSON.stringify(body):undefined
+  });
+  if(!r.ok) throw new Error(r.status);
+  return r.json();
+}
+async function findOrCreateGist(){
+  const list=await gh('GET','/gists');
+  const found=list.find(g=>g.description===GIST_DESC&&g.files[GIST_FILE]);
+  if(found) return found.id;
+  const c=await gh('POST','/gists',{description:GIST_DESC,public:false,files:{[GIST_FILE]:{content:JSON.stringify(state)}}});
+  return c.id;
+}
+async function loadGist(){
+  const g=await gh('GET','/gists/'+gistId);
+  const raw=g.files[GIST_FILE]?.content;
+  if(raw){const p=JSON.parse(raw);const dk=state.dark;state=p;if(p.dark===undefined)state.dark=dk;}
+}
+async function saveGist(){ await gh('PATCH','/gists/'+gistId,{files:{[GIST_FILE]:{content:JSON.stringify(state)}}}); }
 
-    let matchData=null, statsData=null, matchStandings=[], allTimePlayers=[];
+// ── Sync ──────────────────────────────────────────────────────────────────────
+function setSS(s){
+  const el=document.getElementById('sync-ind');if(!el)return;
+  if(s==='ok')      el.innerHTML='<span class="sync-dot s-ok"></span>Saved';
+  if(s==='syncing') el.innerHTML='<span class="sync-dot s-ing"></span>Syncing...';
+  if(s==='error')   el.innerHTML='<span class="sync-dot s-err"></span>Offline';
+}
+async function syncSave(){
+  setSS('syncing');
+  try{await saveGist();localStorage.setItem('hrpg-cache',JSON.stringify(state));setSS('ok');}
+  catch(e){setSS('error');localStorage.setItem('hrpg-cache',JSON.stringify(state));}
+}
+function ds(){if(syncT)clearTimeout(syncT);syncT=setTimeout(syncSave,1200);}
+async function manualSync(){
+  setSS('syncing');
+  try{await loadGist();localStorage.setItem('hrpg-cache',JSON.stringify(state));setSS('ok');applyTheme();updateHeader();render();showToast('Synced! ✅');}
+  catch(e){setSS('error');showToast('Sync failed — check connection','danger');}
+}
 
-    async function loadAll() {
-        try {
-            const [mRes, sRes] = await Promise.all([
-                fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_MATCH}/latest`, { headers:{'X-Master-Key':JSONBIN_API_KEY} }),
-                fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_STATS}/latest`,  { headers:{'X-Master-Key':JSONBIN_API_KEY} })
-            ]);
-            matchData = (await mRes.json()).record;
-            statsData = (await sRes.json()).record;
-            renderAll();
-        } catch(e) {
-            ['match-list','alltime-list','hof-grid','history-list'].forEach(id => {
-                const el=document.getElementById(id);
-                if(el) el.innerHTML=`<div class="loading">😕 No data yet — run a battle first!</div>`;
-            });
-        }
-    }
+// ── Setup ─────────────────────────────────────────────────────────────────────
+async function setupConnect(){
+  const t=document.getElementById('setup-token').value.trim();
+  const err=document.getElementById('setup-err');
+  err.style.display='none';
+  if(!t){err.textContent='Paste your token first.';err.style.display='block';return;}
+  token=t;
+  const btn=document.getElementById('setup-btn');
+  btn.textContent='Connecting...';btn.disabled=true;
+  try{
+    gistId=await findOrCreateGist();
+    await loadGist();
+    localStorage.setItem('hrpg-token',token);
+    localStorage.setItem('hrpg-gist',gistId);
+    localStorage.setItem('hrpg-cache',JSON.stringify(state));
+    launch();
+  }catch(e){
+    err.textContent='Connection failed. Check your token and try again.';
+    err.style.display='block';
+    btn.textContent='🔗 Connect & Start';btn.disabled=false;token='';
+  }
+}
+function launch(){
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('mainApp').style.display='block';
+  applyTheme();updateHeader();render();setSS('ok');
+}
 
-    function renderAll() { renderMatch(); renderAllTime(); renderHoF(); renderHistory(); renderStats(); }
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init(){
+  const st=localStorage.getItem('hrpg-token');
+  const sg=localStorage.getItem('hrpg-gist');
+  const sc=localStorage.getItem('hrpg-cache');
+  if(st&&sg){
+    token=st;gistId=sg;
+    if(sc){try{state=JSON.parse(sc);}catch(e){}}
+    launch();
+    setSS('syncing');
+    try{await loadGist();localStorage.setItem('hrpg-cache',JSON.stringify(state));setSS('ok');updateHeader();render();}
+    catch(e){setSS('error');}
+  }else{
+    document.getElementById('setupScreen').style.display='block';
+  }
+}
 
-    function renderMatch() {
-        if(!matchData||!matchData.standings||!matchData.standings.length) {
-            document.getElementById('match-list').innerHTML=`<div class="loading">No match data yet!</div>`; return;
-        }
-        const d=new Date(matchData.date);
-        const ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-        document.getElementById('match-badges').innerHTML=`
-            <span class="badge">Match #${matchData.matchNumber||1}</span>
-            <span class="badge">${matchData.totalFighters} fighters</span>
-            <span class="badge">${matchData.matchTime}s</span>
-            <span class="badge">${ds}</span>`;
-        const w=matchData.standings[0];
-        const ww=document.getElementById('winner-wrap');
-        ww.style.display='block';
-        ww.innerHTML=`<div class="winner-card">
-            <span class="winner-crown">👑</span>
-            ${makeAv(w.username,72,'border:3px solid #ffd700;margin:0 auto 10px;')}
-            <div class="winner-name">@${w.username}</div>
-            <div class="winner-pts">${w.kills} KOs • +${w.points} pts</div>
-        </div>`;
-        matchStandings=matchData.standings;
-        buildMatchList(matchStandings);
-    }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function today(){return new Date().toISOString().slice(0,10);}
+function getRank(xp){
+  let r=RANKS[0];for(const x of RANKS){if(xp>=x.min)r=x;else break;}
+  const n=RANKS.find(x=>x.level===r.level+1);
+  const p=n?Math.min(100,Math.round(((xp-r.min)/(n.min-r.min))*100)):100;
+  return{rank:r,next:n,pct:p,needed:n?n.min-xp:0};
+}
+function toggleTheme(){state.dark=!state.dark;applyTheme();ds();}
+function applyTheme(){
+  document.body.classList.toggle('light',!state.dark);
+  const b=document.getElementById('theme-btn');if(b)b.textContent=state.dark?'☀️':'🌙';
+}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type;t.style.display='block';
+  if(toastT)clearTimeout(toastT);
+  toastT=setTimeout(()=>t.style.display='none',2800);
+}
+function setTab(t){
+  tab=t;
+  ['today','stats','habits','settings'].forEach(x=>document.getElementById('tab-'+x)?.classList.toggle('active',x===t));
+  render();
+}
+function updateHeader(){
+  const{rank}=getRank(state.player.xp);
+  const el=document.getElementById('header-sub');
+  if(el)el.textContent=`${rank.emoji} ${rank.title} · ${state.player.xp} XP`;
+}
+function todayHabits(){
+  const wd=new Date().getDay();
+  return state.habits.filter(h=>h.frequency==='daily'||(h.frequency==='weekly'&&(h.weekday??1)===wd));
+}
 
-    function buildMatchList(standings) {
-        const c=document.getElementById('match-list'); c.innerHTML='';
-        standings.forEach(f => {
-            const rc=f.rank<=3?'r'+f.rank:'rn';
-            const ri=f.rank===1?'👑':f.rank;
-            const elimBy=f.isWinner?'<span style="color:#ffd700">Winner</span>':f.eliminatedBy==='Storm'?'<span style="color:#8338ec">⚡Storm</span>':'@'+f.eliminatedBy;
-            const row=document.createElement('div');
-            row.className='f-row'+(f.rank<=3?' gold':'');
-            row.innerHTML=`
-                <div class="rank-badge ${rc}">${ri}</div>
-                ${makeAv(f.username,36,'margin-right:10px;')}
-                <div class="f-name ${f.rank===1?'gold-text':''}">@${f.username}</div>
-                <div class="f-stat f-pts${!f.points?' f-zero':''}">+${f.points||0}</div>
-                <div class="f-stat f-kills${!f.kills?' f-zero':''}">${f.kills||'—'}</div>
-                <div class="f-by">${elimBy}</div>`;
-            c.appendChild(row);
-        });
-    }
+// ── Actions ───────────────────────────────────────────────────────────────────
+function completeHabit(id){
+  const h=state.habits.find(x=>x.id===id);
+  if(!h||h.lastAction===today())return;
+  const yd=new Date();yd.setDate(yd.getDate()-1);const ys=yd.toISOString().slice(0,10);
+  const lw=new Date();lw.setDate(lw.getDate()-7);
+  const streak=(h.frequency==='daily'?h.lastCompleted===ys:h.lastCompleted>=lw.toISOString().slice(0,10))?(h.streak||0)+1:1;
+  h.lastAction=today();h.lastCompleted=today();h.streak=streak;h.todayStatus='done';
+  state.player.xp+=h.xpReward;
+  state.player.history.push({date:today(),delta:h.xpReward,name:h.name});
+  ds();updateHeader();render();
+  showToast(`+${h.xpReward} XP! ${streak>1?`🔥 ${streak} streak!`:'✅ Done!'}`, 'success');
+}
+function failHabit(id){
+  const h=state.habits.find(x=>x.id===id);
+  if(!h||h.lastAction===today())return;
+  h.lastAction=today();h.streak=0;h.todayStatus='failed';
+  state.player.xp=Math.max(0,state.player.xp-h.xpPenalty);
+  state.player.history.push({date:today(),delta:-h.xpPenalty,name:h.name});
+  ds();updateHeader();render();
+  document.getElementById('pen-xp').textContent=`-${h.xpPenalty} XP`;
+  const sh=document.getElementById('pen-shame');
+  sh.textContent=h.shameMessage?'"'+h.shameMessage+'"':'';sh.style.display=h.shameMessage?'block':'none';
+  const pb=document.getElementById('pen-pun');
+  if(h.penaltyText){pb.textContent='🏋️  '+h.penaltyText;pb.style.display='block';}else pb.style.display='none';
+  document.getElementById('penModal').style.display='flex';
+}
+function closePen(){document.getElementById('penModal').style.display='none';}
+function openAdd(){
+  editId=null;editFreq='daily';
+  document.getElementById('editTitle').textContent='New Habit';
+  document.getElementById('e-emoji').value='⭐';
+  document.getElementById('e-name').value='';
+  document.getElementById('e-xpR').value=20;
+  document.getElementById('e-xpP').value=10;
+  document.getElementById('e-pen').value='';
+  document.getElementById('e-shame').value='';
+  document.getElementById('e-weekday').value=1;
+  document.getElementById('deleteBtn').style.display='none';
+  setFreq('daily');
+  document.getElementById('editModal').style.display='flex';
+}
+function openEdit(id){
+  const h=state.habits.find(x=>x.id===id);if(!h)return;
+  editId=id;editFreq=h.frequency||'daily';
+  document.getElementById('editTitle').textContent='Edit Habit';
+  document.getElementById('e-emoji').value=h.emoji||'⭐';
+  document.getElementById('e-name').value=h.name;
+  document.getElementById('e-xpR').value=h.xpReward;
+  document.getElementById('e-xpP').value=h.xpPenalty;
+  document.getElementById('e-pen').value=h.penaltyText||'';
+  document.getElementById('e-shame').value=h.shameMessage||'';
+  document.getElementById('e-weekday').value=h.weekday??1;
+  document.getElementById('deleteBtn').style.display='block';
+  setFreq(h.frequency||'daily');
+  document.getElementById('editModal').style.display='flex';
+}
+function setFreq(f){
+  editFreq=f;
+  document.getElementById('freq-daily').classList.toggle('active',f==='daily');
+  document.getElementById('freq-weekly').classList.toggle('active',f==='weekly');
+  document.getElementById('weekday-row').style.display=f==='weekly'?'block':'none';
+}
+function saveHabit(){
+  const name=document.getElementById('e-name').value.trim();
+  if(!name){showToast('Enter a habit name!','warn');return;}
+  const h={
+    id:editId||Date.now().toString(),name,
+    emoji:document.getElementById('e-emoji').value||'⭐',
+    frequency:editFreq,
+    weekday:parseInt(document.getElementById('e-weekday').value),
+    xpReward:parseInt(document.getElementById('e-xpR').value)||20,
+    xpPenalty:parseInt(document.getElementById('e-xpP').value)||10,
+    penaltyText:document.getElementById('e-pen').value.trim(),
+    shameMessage:document.getElementById('e-shame').value.trim(),
+    streak:0,lastAction:'',lastCompleted:'',todayStatus:''
+  };
+  if(editId){
+    const old=state.habits.find(x=>x.id===editId);
+    if(old){h.streak=old.streak;h.lastAction=old.lastAction;h.lastCompleted=old.lastCompleted;h.todayStatus=old.todayStatus;}
+    state.habits=state.habits.map(x=>x.id===editId?h:x);
+    showToast('Habit updated! ✅');
+  }else{
+    state.habits.push(h);showToast('Habit created! 🎯');
+  }
+  ds();closeEdit();render();
+}
+function deleteHabit(){
+  if(!editId)return;
+  state.habits=state.habits.filter(x=>x.id!==editId);
+  ds();closeEdit();render();showToast('Habit deleted','warn');
+}
+function closeEdit(){document.getElementById('editModal').style.display='none';}
+function disconnect(){
+  if(!confirm('Disconnect this device? Your data stays safe on GitHub.'))return;
+  localStorage.removeItem('hrpg-token');localStorage.removeItem('hrpg-gist');
+  location.reload();
+}
+function resetAll(){
+  if(!confirm('Reset ALL data? Cannot be undone.'))return;
+  state={habits:[],player:{xp:0,history:[]},dark:state.dark};
+  ds();updateHeader();render();showToast('Data reset.','warn');
+}
 
-    function filterMatch() {
-        const q=document.getElementById('search-match').value.toLowerCase().trim();
-        if(!q){buildMatchList(matchStandings);return;}
-        const f=matchStandings.filter(f=>f.username.toLowerCase().includes(q)||(f.eliminatedBy&&f.eliminatedBy.toLowerCase().includes(q)));
-        buildMatchList(f);
-        document.querySelectorAll('#match-list .f-row').forEach(r=>r.classList.add('hl'));
-    }
+// ── Render ────────────────────────────────────────────────────────────────────
+function last7(){
+  return Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));return d.toISOString().slice(0,10);});
+}
+function sday(s){return['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date(s+'T12:00:00').getDay()];}
 
-    function renderAllTime() {
-        if(!statsData||!statsData.players){document.getElementById('alltime-list').innerHTML=`<div class="loading">No stats yet!</div>`;return;}
-        allTimePlayers=Object.values(statsData.players).sort((a,b)=>b.points-a.points);
-        buildAllTimeList(allTimePlayers);
-    }
+function render(){
+  const c=document.getElementById('content');if(!c)return;
+  if(tab==='today')     renderToday(c);
+  else if(tab==='stats')    renderStats(c);
+  else if(tab==='habits')   renderHabits(c);
+  else renderSettings(c);
+}
 
-    function buildAllTimeList(players) {
-        const c=document.getElementById('alltime-list'); c.innerHTML='';
-        players.forEach((p,i)=>{
-            const rank=i+1;
-            const row=document.createElement('div');
-            row.className='f-row'+(rank<=3?' gold':'');
-            row.innerHTML=`
-                <div class="rank-badge ${rank<=3?'r'+rank:'rn'}">${rank===1?'👑':rank}</div>
-                ${makeAv(p.username,36,'margin-right:10px;')}
-                <div class="f-name ${rank===1?'gold-text':''}">@${p.username}</div>
-                <div class="f-stat f-pts">${p.points}</div>
-                <div class="f-stat f-kills${!p.kills?' f-zero':''}">${p.kills||'—'}</div>
-                <div class="f-stat f-wins${!p.wins?' f-zero':''}">${p.wins||'—'}</div>`;
-            c.appendChild(row);
-        });
-    }
+function renderToday(c){
+  const t=today(),th=todayHabits();
+  const done=th.filter(h=>h.lastAction===t&&h.todayStatus==='done').length;
+  let h=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:13px;color:var(--sec)">${new Date().toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric'})}</div>
+    ${th.length>0?`<div style="font-size:12px;font-weight:600;color:${done===th.length?'var(--success)':'var(--sec)'}">${done}/${th.length} done</div>`:''}
+  </div>`;
+  if(!th.length) h+=`<div class="card"><div class="empty"><div style="font-size:36px;margin-bottom:8px">🎯</div><div style="font-weight:600;margin-bottom:4px">No habits today</div><div style="font-size:13px">Go to Habits tab to add some!</div></div></div>`;
+  th.forEach(x=>{
+    const a=x.lastAction===t;
+    const cl=a?(x.todayStatus==='done'?'done':'failed'):'';
+    h+=`<div class="hcard ${cl}">
+      <div class="hname">${x.emoji||'⭐'} ${x.name}</div>
+      <div class="hmeta">
+        <span style="color:var(--success)">+${x.xpReward} XP</span>
+        <span style="color:var(--danger)">-${x.xpPenalty} fail</span>
+        <span>${x.frequency==='weekly'?'📅 Weekly':'📆 Daily'}</span>
+        ${x.streak>0?`<span style="color:var(--warn)">🔥 ${x.streak}</span>`:''}
+      </div>
+      ${a
+        ?`<div style="font-size:13px;font-weight:700;margin-top:8px;color:${x.todayStatus==='done'?'var(--success)':'var(--danger)'}">${x.todayStatus==='done'?'✅ Completed!':'❌ Failed today'}</div>`
+        :`<div class="hact"><button class="btn btn-s" onclick="completeHabit('${x.id}')">✓ Done</button><button class="btn btn-ds" onclick="failHabit('${x.id}')">✗ Failed</button></div>`
+      }
+    </div>`;
+  });
+  c.innerHTML=h;
+}
 
-    function filterAllTime() {
-        const q=document.getElementById('search-alltime').value.toLowerCase().trim();
-        if(!q){buildAllTimeList(allTimePlayers);return;}
-        const f=allTimePlayers.filter(p=>p.username.toLowerCase().includes(q));
-        buildAllTimeList(f);
-        document.querySelectorAll('#alltime-list .f-row').forEach(r=>r.classList.add('hl'));
-    }
+function renderStats(c){
+  const{rank,next,pct,needed}=getRank(state.player.xp);
+  const l7=last7();
+  const xpd=l7.map(d=>(state.player.history||[]).filter(e=>e.date===d&&e.delta>0).reduce((s,e)=>s+e.delta,0));
+  const mx=Math.max(1,...xpd);
+  let h=`<div class="card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      <div style="font-size:48px;line-height:1">${rank.emoji}</div>
+      <div><div style="font-size:20px;font-weight:700">${rank.title}</div><div style="font-size:12px;color:var(--sec)">Level ${rank.level} · ${state.player.xp} XP</div></div>
+    </div>
+    <div class="xbw"><div class="xbf" style="width:${pct}%"></div></div>
+    <div class="xbl"><span>${pct}% to Level ${rank.level+1}</span>${next?`<span>${needed} XP → ${next.emoji} ${next.title}</span>`:'<span>Max rank! 🏆</span>'}</div>
+  </div>`;
+  h+=`<div class="card"><div class="stit">XP Earned — Last 7 Days</div><div class="cbars">`;
+  xpd.forEach((v,i)=>{const bh=Math.max(4,Math.round((v/mx)*100));h+=`<div class="cbc"><div class="cb" style="height:${bh}px"></div><div class="cl">${sday(l7[i])}</div></div>`;});
+  h+=`</div></div>`;
+  h+=`<div class="card"><div class="stit">Streaks</div>`;
+  if(!state.habits.length)h+=`<div style="color:var(--sec);font-size:13px">No habits yet.</div>`;
+  state.habits.forEach(x=>{h+=`<div class="srow"><span style="font-size:14px">${x.emoji||'⭐'} ${x.name}</span><span style="font-weight:700;color:${x.streak>0?'var(--warn)':'var(--sec)'}">${x.streak>0?`🔥 ${x.streak}`:'—'}</span></div>`;});
+  h+=`</div><div class="card"><div class="stit">Rank Ladder</div>`;
+  RANKS.forEach(r=>{const cur=r.level===rank.level;h+=`<div style="display:flex;justify-content:space-between;padding:6px 0;opacity:${r.level>rank.level?0.35:1}"><span style="font-size:14px;font-weight:${cur?700:400}">${r.emoji} ${r.title}${cur?' ←':''}</span><span style="font-size:12px;color:var(--sec)">${r.min} XP</span></div>`;});
+  h+=`</div>`;
+  c.innerHTML=h;
+}
 
-    function renderHoF() {
-        if(!statsData||!statsData.players) return;
-        const players=Object.values(statsData.players);
-        const top=[...players].sort((a,b)=>b.points-a.points).slice(0,9);
-        const grid=document.getElementById('hof-grid'); grid.innerHTML='';
-        top.forEach((p,i)=>{
-            const borders=['border:2px solid #ffd700;','border:2px solid #c0c0c0;','border:2px solid #cd7f32;'];
-            const card=document.createElement('div');
-            card.className='hof-card'+(i<3?' top':'');
-            card.innerHTML=`
-                <div class="hof-av" style="${borders[i]||''}background:${getColor(p.username)};color:white;">${initials(p.username)}</div>
-                <div class="hof-username">@${p.username}</div>
-                <div class="hof-pts">${p.points}</div>
-                <div class="hof-sub">${p.wins}W · ${p.kills}KO · ${p.matches}M</div>`;
-            grid.appendChild(card);
-        });
+function renderHabits(c){
+  let h=`<button class="btn btn-p btn-block" onclick="openAdd()">+ Add New Habit</button>`;
+  if(!state.habits.length)h+=`<div class="card"><div class="empty"><div style="font-size:36px;margin-bottom:8px">📋</div><div style="font-weight:600;margin-bottom:4px">No habits yet</div><div style="font-size:13px">Hit the button above!</div></div></div>`;
+  state.habits.forEach(x=>{
+    h+=`<div class="hcard"><div style="display:flex;justify-content:space-between;align-items:center">
+      <div><div class="hname">${x.emoji||'⭐'} ${x.name}</div>
+      <div class="hmeta"><span style="color:var(--success)">+${x.xpReward}</span> / <span style="color:var(--danger)">-${x.xpPenalty}</span> XP · <span>${x.frequency==='weekly'?`Weekly (${DAYS[x.weekday??1]})`:'Daily'}</span>${x.streak>0?`<span style="color:var(--warn)">🔥 ${x.streak}</span>`:''}</div></div>
+      <button class="btn btn-o" onclick="openEdit('${x.id}')">Edit</button>
+    </div></div>`;
+  });
+  c.innerHTML=h;
+}
 
-        const kc=document.getElementById('hof-killers'); kc.innerHTML='';
-        [...players].sort((a,b)=>b.kills-a.kills).slice(0,5).forEach((p,i)=>{
-            kc.innerHTML+=`<div class="f-row ${i<3?'gold':''}">
-                <div class="rank-badge ${i<3?'r'+(i+1):'rn'}">${['🥇','🥈','🥉'][i]||i+1}</div>
-                ${makeAv(p.username,36,'margin-right:10px;')}
-                <div class="f-name">@${p.username}</div>
-                <div class="f-stat f-kills">${p.kills} 💀</div>
-            </div>`;
-        });
+function renderSettings(c){
+  c.innerHTML=`
+    <div class="card">
+      <div class="stit">☁️ GitHub Sync</div>
+      <div style="font-size:13px;color:var(--sec);margin-bottom:12px;line-height:1.6">Data saved to a private GitHub Gist. Use the same token on any device to sync.</div>
+      <div style="font-size:12px;color:var(--sec);margin-bottom:4px">Gist ID</div>
+      <div style="font-size:12px;background:var(--card);border-radius:8px;padding:8px 10px;margin-bottom:12px;word-break:break-all">${gistId}</div>
+      <a href="https://gist.github.com/${gistId}" target="_blank" class="btn btn-o btn-block" style="margin-bottom:8px">🔗 View Gist on GitHub</a>
+      <button class="btn btn-ds btn-block" onclick="disconnect()">Disconnect this device</button>
+    </div>
+    <div class="card">
+      <div class="stit">⚠️ Danger Zone</div>
+      <div style="font-size:13px;color:var(--sec);margin-bottom:12px">Resets all habits, XP, and history. Cannot be undone.</div>
+      <button class="btn btn-ds btn-block" onclick="resetAll()">🗑 Reset Everything</button>
+    </div>`;
+}
 
-        const ac=document.getElementById('hof-active'); ac.innerHTML='';
-        [...players].sort((a,b)=>b.matches-a.matches).slice(0,5).forEach((p,i)=>{
-            ac.innerHTML+=`<div class="f-row ${i<3?'gold':''}">
-                <div class="rank-badge ${i<3?'r'+(i+1):'rn'}">${['🥇','🥈','🥉'][i]||i+1}</div>
-                ${makeAv(p.username,36,'margin-right:10px;')}
-                <div class="f-name">@${p.username}</div>
-                <div class="f-stat f-wins">${p.matches} ⚔️</div>
-            </div>`;
-        });
-    }
-
-    function renderHistory() {
-        const c=document.getElementById('history-list');
-        if(!statsData||!statsData.history||!statsData.history.length){c.innerHTML=`<div class="loading">No history yet!</div>`;return;}
-        c.innerHTML='';
-        statsData.history.forEach(m=>{
-            const d=new Date(m.date);
-            const ds=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-            const ts=d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-            c.innerHTML+=`<div class="hist-item">
-                <div class="hist-num">#${m.matchNumber||'?'}</div>
-                <div class="hist-av" style="background:${getColor(m.winner)};color:white;">${initials(m.winner)}</div>
-                <div class="hist-info">
-                    <div class="hist-winner">👑 @${m.winner}</div>
-                    <div class="hist-meta">${m.totalFighters} fighters · ${m.matchTime}s</div>
-                </div>
-                <div class="hist-date">${ds}<br>${ts}</div>
-            </div>`;
-        });
-    }
-
-    function renderStats() {
-        if(!statsData) return;
-        const players=Object.values(statsData.players||{});
-        const totalKills=players.reduce((s,p)=>s+p.kills,0);
-        const top=players.sort((a,b)=>b.points-a.points)[0];
-        document.getElementById('stats-cards').innerHTML=`
-            <div class="stat-card"><div class="stat-num">${statsData.totalMatches||0}</div><div class="stat-label">Total Matches</div></div>
-            <div class="stat-card"><div class="stat-num">${players.length}</div><div class="stat-label">Unique Fighters</div></div>
-            <div class="stat-card"><div class="stat-num">${totalKills}</div><div class="stat-label">Total KOs</div></div>
-            <div class="stat-card"><div class="stat-num">${top?top.points:0}</div><div class="stat-label">Top Score</div></div>`;
-    }
-
-    loadAll();
+init();
 </script>
 </body>
 </html>
